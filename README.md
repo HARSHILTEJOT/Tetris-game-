@@ -64,7 +64,6 @@ This is a simple **Tetris-inspired** game built in **C++** that runs in the cons
   - **Hard**: 100 ms per move
 
 ## 🛠️ Future Improvements
-- Add different block colors for better visibility.
 - Implement a leaderboard system.
 - Introduce music and sound effects.
 - Improve UI for a better gaming experience.
