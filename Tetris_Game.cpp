@@ -9,26 +9,30 @@ const int width = 10;
 const int height = 20;
 bool gameOver;
 int board[height][width] = {0}; // Game board grid
+int colorBoard[height][width] = {0}; // Stores colors of locked blocks
 int score = 0;
 int highScore = 0;
 int difficulty = 1; // 1 = Easy, 2 = Medium, 3 = Hard
 int speed = 300; // Initial speed
 
-// Tetromino shapes
+// Tetromino shapes and colors
 int tetrominoes[7][4][4] = {
-    {{1, 1, 1, 1}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}},
-    {{1, 1}, {1, 1}},
-    {{0, 1, 0}, {1, 1, 1}},
-    {{1, 1, 0}, {0, 1, 1}},
-    {{0, 1, 1}, {1, 1, 0}},
-    {{1, 1, 1}, {1, 0, 0}},
-    {{1, 1, 1}, {0, 0, 1}}
+    {{1, 1, 1, 1}},  // I
+    {{1, 1}, {1, 1}}, // O
+    {{0, 1, 0}, {1, 1, 1}}, // T
+    {{1, 1, 0}, {0, 1, 1}}, // S
+    {{0, 1, 1}, {1, 1, 0}}, // Z
+    {{1, 1, 1}, {1, 0, 0}}, // L
+    {{1, 1, 1}, {0, 0, 1}}  // J
 };
+
+int colors[7] = {11, 14, 13, 10, 12, 6, 9}; // Light blue, Yellow, Purple, Green, Red, Orange, Blue
 
 struct Block {
     int shape[4][4];
     int size;
     int x, y;
+    int color;
 } currentBlock;
 
 void copyShape(int shape[4][4], int id) {
@@ -43,6 +47,12 @@ void generateBlock() {
     currentBlock.size = (id == 0) ? 4 : 3;
     currentBlock.x = width / 2 - 1;
     currentBlock.y = 0;
+    currentBlock.color = colors[id];
+}
+
+// Set console text color
+void setColor(int color) {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
 }
 
 void initializeGame() {
@@ -50,7 +60,7 @@ void initializeGame() {
     score = 0;
     for (int i = 0; i < height; i++)
         for (int j = 0; j < width; j++)
-            board[i][j] = 0;
+            board[i][j] = colorBoard[i][j] = 0;
     generateBlock();
 }
 
@@ -58,24 +68,41 @@ void drawBoard() {
     COORD cursorPosition = {0, 0};
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), cursorPosition);
     int tempBoard[height][width];
+    int tempColors[height][width];
+
+    // Copy existing board
     for (int i = 0; i < height; i++)
-        for (int j = 0; j < width; j++)
+        for (int j = 0; j < width; j++) {
             tempBoard[i][j] = board[i][j];
+            tempColors[i][j] = colorBoard[i][j];
+        }
+
+    // Merge current moving block into tempBoard
     for (int i = 0; i < currentBlock.size; i++) {
         for (int j = 0; j < currentBlock.size; j++) {
             if (currentBlock.shape[i][j] && currentBlock.y + i >= 0) {
                 tempBoard[currentBlock.y + i][currentBlock.x + j] = 1;
+                tempColors[currentBlock.y + i][currentBlock.x + j] = currentBlock.color;
             }
         }
     }
+
+    // Draw game board
     for (int i = 0; i < height; i++) {
         cout << "| ";
         for (int j = 0; j < width; j++) {
-            cout << (tempBoard[i][j] ? "#" : " ") << " ";
+            if (tempBoard[i][j]) {
+                setColor(tempColors[i][j]);
+                cout << "# ";
+                setColor(15); // Reset to white
+            } else {
+                cout << "  ";
+            }
         }
-        cout << "|" << endl;
+        cout << "|\n";
     }
-    cout << "Score: " << score << " | High Score: " << highScore << " | Difficulty: " << (difficulty == 1 ? "Easy" : difficulty == 2 ? "Medium" : "Hard") << endl;
+    cout << "Score: " << score << " | High Score: " << highScore << " | Difficulty: " 
+         << (difficulty == 1 ? "Easy" : difficulty == 2 ? "Medium" : "Hard") << endl;
 }
 
 bool isValidMove(int newX, int newY) {
@@ -104,6 +131,7 @@ void clearLines() {
             for (int k = i; k > 0; k--) {
                 for (int j = 0; j < width; j++) {
                     board[k][j] = board[k - 1][j];
+                    colorBoard[k][j] = colorBoard[k - 1][j];
                 }
             }
             score += 10;
@@ -116,6 +144,7 @@ void rotateBlock() {
     for (int i = 0; i < currentBlock.size; i++)
         for (int j = 0; j < currentBlock.size; j++)
             temp[j][currentBlock.size - 1 - i] = currentBlock.shape[i][j];
+
     for (int i = 0; i < currentBlock.size; i++) {
         for (int j = 0; j < currentBlock.size; j++) {
             if (temp[i][j]) {
@@ -125,6 +154,7 @@ void rotateBlock() {
             }
         }
     }
+
     for (int i = 0; i < currentBlock.size; i++)
         for (int j = 0; j < currentBlock.size; j++)
             currentBlock.shape[i][j] = temp[i][j];
@@ -139,6 +169,7 @@ void moveBlock(int dx, int dy) {
             for (int j = 0; j < currentBlock.size; j++) {
                 if (currentBlock.shape[i][j]) {
                     board[currentBlock.y + i][currentBlock.x + j] = 1;
+                    colorBoard[currentBlock.y + i][currentBlock.x + j] = currentBlock.color;
                 }
             }
         }
